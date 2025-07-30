@@ -3,42 +3,42 @@ from pydantic import BaseModel
 import openai
 import os
 from dotenv import load_dotenv
+from app.database import db  # MongoDB bağlantısı
 
 # .env dosyasını yükle
 load_dotenv()
 
-# Ortam değişkeninden OpenAI API anahtarını al
+# OpenAI API key'i ortam değişkeninden al
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 app = FastAPI(
-    title="ChatGPT Mini API",
-    description="FastAPI ile Dockerize edilmiş ChatGPT entegrasyonlu demo",
+    title="Furkan's ChatGPT API",
+    description="FastAPI + OpenAI + MongoDB demo projesi",
     version="1.0.0"
 )
 
-# Gelen veriyi tanımlayan model
+# İstek/yanıt modelleri
 class ChatRequest(BaseModel):
     message: str
 
-# Giden cevabı tanımlayan model
 class ChatResponse(BaseModel):
     reply: str
 
-# Basit test endpoint'i
+# Basit sabit yanıt dönen endpoint
 @app.post("/chat", response_model=ChatResponse)
-def basic_chat(chat: ChatRequest):
+def chat(chat: ChatRequest):
     return {
         "reply": f"Sen: {chat.message} | Ben: Bu çok ilginç bir şey!"
     }
 
-# OpenAI GPT-4 entegrasyonlu endpoint
+# OpenAI API ile GPT yanıtı dönen endpoint
 @app.post("/chatgpt", response_model=ChatResponse)
-def gpt_chat(chat: ChatRequest):
+def chatgpt(chat: ChatRequest):
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  
+            model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "Sen yardımcı ve nazik bir yapay zekasın."},
+                {"role": "system", "content": "Sen yardımcı bir yapay zekasın."},
                 {"role": "user", "content": chat.message}
             ],
             temperature=0.7,
@@ -46,6 +46,17 @@ def gpt_chat(chat: ChatRequest):
         )
         reply = response.choices[0].message["content"].strip()
         return {"reply": reply}
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OpenAI API hatası: {str(e)}")
+
+# Mesajı MongoDB'ye kaydet
+@app.post("/chat/save")
+async def save_message(chat: ChatRequest):
+    result = await db.messages.insert_one(chat.dict())
+    return {"inserted_id": str(result.inserted_id)}
+
+# Kayıtlı tüm mesajları listele
+@app.get("/chat/list")
+async def list_messages():
+    messages = await db.messages.find().to_list(length=100)
+    return messages

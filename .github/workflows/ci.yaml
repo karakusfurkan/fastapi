@@ -2,14 +2,16 @@ name: FastAPI CI Pipeline
 
 on:
   push:
-    branches: [ main ]  # Veya "master"
+    branches:
+      - main  # Ana branch'ine göre değiştirebilirsin
+  pull_request:
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Repo'yu klonla
+    - name: Reponun kodunu klonla
       uses: actions/checkout@v3
 
     - name: Python kurulumu
@@ -22,14 +24,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Basit uygulama testi (main.py var mı diye kontrol)
+    - name: Pytest testlerini çalıştır
       run: |
-        ls app/
-        python -c "import app.main"
+        pytest
+
+    - name: Docker kurulumu
+      uses: docker/setup-buildx-action@v3
 
     - name: Docker image oluştur
       run: |
         docker build -t chatgpt-fastapi .
-
-    # İstersen Docker Hub'a push bölümü de ekleyebiliriz
-

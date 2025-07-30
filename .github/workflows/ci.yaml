@@ -24,12 +24,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: PYTHONPATH ayarla
+    - name: PYTHONPATH ayarla (app modülünü görsün)
       run: echo "PYTHONPATH=$PWD" >> $GITHUB_ENV
 
-    - name: Pytest testlerini çalıştır
+    - name: Pytest testlerini coverage ile çalıştır
       run: |
-        pytest
+        pytest --cov=app --cov-report=term-missing
 
     - name: Docker kurulumu
       uses: docker/setup-buildx-action@v3
